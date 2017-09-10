@@ -19,7 +19,7 @@ import numpy as np
 
 
 import sys
-sys.path.append('~/qiskit-sdk-py/') #Change to point to your qiskit root
+sys.path.append('/Users/sabreitweiser/qiskit-sdk-py/') #Change to point to your qiskit root
 
 # importing the QISKit
 from qiskit import QuantumCircuit, QuantumProgram
@@ -30,21 +30,36 @@ from qiskit.tools.visualization import plot_histogram
 
 
 ###Tinder API imports###
-sys.path.append('~/entangled/Tinder/') #Change to point to your Tinder api root
+sys.path.append('/Users/sabreitweiser/Tinder/') #Change to point to your Tinder api root
 from features import get_match_info, pause
 from tinder_api import authverif, like, dislike, get_recommendations, get_person
 
 ###My imports###
 from queue import Queue
 from pprint import pprint
-import urllib
+from urllib.request import urlopen
 from PIL import Image
+from time import sleep
+from datetime import date
+from random import random
+
+###Helper code###
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 ###Setting up Tinder###
 authverif()
 
 ###Setting up IBMQX###
 device = 'ibmqx2' # the device to run on
-#device = 'local_qasm_simulator' # uncomment to run on the simulator
+device = 'local_qasm_simulator' # uncomment to run on the simulator
 batch_size = 50 # Number of decisions in one request
 
 QPS_SPECS = {
@@ -99,15 +114,31 @@ while True:
 	#Match a decision to a recommendation
 	rec = recommendations.get()
 	dec = decisions.get()
-
-	pprint(rec)
+	
+	print('ID: ' + rec)
 	person = get_person(rec)
 	person = person['results']
-	photos = person['photos']
-	
-	for photo in photos:
+	print('NAME: ' + person['name'])
+	if person.get('jobs'):
+		for job in person['jobs']:
+			if job.get('company'):
+				print('COMPANY: ' + job['company']['name'])
+			if job.get('title'):
+				print('TITLE: ' + job['title']['name'])
+
+	if person.get('schools'):
+		for school in person['schools']:
+			print('SCHOOL: ' + school['name'])
+
+	if person.get('bio'):
+		print('BIO: ' + person['bio'])
+
+	if person.get('distance_mi'):
+		print('DISTANCE: ' + str(person['distance_mi']) + ' miles')
+
+	for photo in person['photos']:
 		URL = photo['url']
-		with urllib.request.urlopen(URL) as url:
+		with urlopen(URL) as url:
 			with open('temp.jpg', 'wb') as f:
 				f.write(url.read())
 
@@ -116,10 +147,11 @@ while True:
 	
 	if dec:
 		like(rec)
-		print('LIKED')
+		print(bcolors.OKGREEN + 'LIKED' + bcolors.ENDC)
 	else:
 		dislike(rec)
-		print('DISLIKED')
+		print(bcolors.FAIL + 'DISLIKED' + bcolors.ENDC)
 
-	for _ in range(10):
-		pause()
+	for _ in range(5):
+		sleep(4*random())
+		print('...')
